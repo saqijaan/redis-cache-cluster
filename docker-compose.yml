@@ -1,0 +1,79 @@
+version: '3.8'
+
+services:
+  node1:
+    container_name: ${COMPOSE_PROJECT_NAME}_node1
+    image: redis:6.2.6
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    volumes:
+      - ./node1.conf:/usr/local/etc/redis/redis.conf
+    ports:
+      - 6382:7002
+      - 16382:17002
+    networks:
+      redis-cluster-net:
+        ipv4_address: 172.25.0.2
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  node2:
+    container_name: ${COMPOSE_PROJECT_NAME}_node2
+    image: redis:6.2.6
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    volumes:
+      - ./node2.conf:/usr/local/etc/redis/redis.conf
+    ports:
+      - 6383:7003
+      - 16383:17003
+    networks:
+      redis-cluster-net:
+        ipv4_address: 172.25.0.3
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  node3:
+    container_name: ${COMPOSE_PROJECT_NAME}_node3
+    image: redis:6.2.6
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+    volumes:
+      - ./node3.conf:/usr/local/etc/redis/redis.conf
+    ports:
+      - 6384:7004
+      - 16384:17004
+    networks:
+      redis-cluster-net:
+        ipv4_address: 172.25.0.4
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  redis-cluster-creator:
+    image: redis:latest
+    networks:
+      - redis-cluster-net
+    command: redis-cli --cluster create 192.168.65.254:6382 192.168.65.254:6383 192.168.65.254:6384 --cluster-replicas 0 --cluster-yes
+    depends_on:
+      - node1
+      - node2
+      - node3
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  redisInsights:
+    image: redislabs/redisinsight:latest
+    ports:
+      - 6999:5540
+    networks:
+      - redis-cluster-net
+    depends_on:
+      - redis-cluster-creator
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+networks:
+  redis-cluster-net:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.25.0.0/16
+          gateway: 172.25.0.1

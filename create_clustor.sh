@@ -1,0 +1,1 @@
+redis-cli --cluster create 172.25.0.2:7002 172.25.0.3:7003 172.25.0.4:7004 --cluster-replicas 0
